@@ -7,6 +7,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.os.Environment;
 import android.provider.Telephony;
 
 import androidx.core.app.ActivityCompat;
@@ -19,6 +20,7 @@ import org.json.JSONObject;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 
 public class SmsExtractor {
 
@@ -29,7 +31,7 @@ public class SmsExtractor {
     }
 
     @SuppressLint("Range")
-    public void extractSMSToJSON() {
+    public String extractSMSToJSON() throws UnsupportedEncodingException {
         if (checkPermission()) {
             JSONArray smsArray = new JSONArray();
 
@@ -55,8 +57,11 @@ public class SmsExtractor {
                 cursor.close();
             }
             System.out.println(smsArray);
-            writeJSONToFile(smsArray);
+//            return writeJSONToFile(smsArray);
+            return smsArray.toString();
         }
+
+        return "No permissions";
     }
 
     private boolean checkPermission() {
@@ -67,14 +72,23 @@ public class SmsExtractor {
         return true;
     }
 
-    private void writeJSONToFile(JSONArray jsonArray) {
+    private String writeJSONToFile(JSONArray jsonArray) throws UnsupportedEncodingException {
         String filename = "sms_messages.json";
-        File file = new File(context.getExternalFilesDir(null), filename);
+        byte[] jsonBytes = FileUtils.jsonToByteArray(jsonArray);
+        FileUtils.saveFileToDownloads3(context, jsonBytes,filename);
+
+        String downloadsPath = Environment
+                .getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+                .getAbsolutePath();
+
+        File file = new File(downloadsPath, filename);
 
         try (FileWriter fileWriter = new FileWriter(file)) {
             fileWriter.write(jsonArray.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        return file.getAbsolutePath();
     }
 }
